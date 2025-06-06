@@ -61,3 +61,4 @@ export PROJECT_ID="your-project-id"
 ## 参考
 
 - [Google Chat、Vertex AI、Firestore でプロジェクトを管理する](https://developers.google.com/workspace/chat/tutorial-project-management?hl=ja)
+- [Vertex AI の生成AIのロケーション](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/locations?hl=ja#asia-pacific)

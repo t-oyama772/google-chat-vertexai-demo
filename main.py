@@ -27,41 +27,32 @@ print(f'{PROJECT_ID=}')
 
 db = firestore.Client(project=PROJECT_ID)
 vertexai.init(project=PROJECT_ID, location="asia-northeast1")
+# vertexai.init(project=PROJECT_ID, location="global")
+default_model = "gemini-1.5-pro-002"
 models_json = [
         {
             "base_model": "Gemini",
             "variations": [
-                {
-                    "name": "gemini-1.0-pro",
-                    "description": "Gemini 1.0のプロフェッショナル版。高度な機能が追加されています。"
-                },
-                # "8192 is out of supported range [1, 2049);  for max output tokens parameter." というエラーが出るためコメントアウト
                 # {
-                #     "name": "gemini-1.0-pro-vision",
-                #     "description": "Gemini 1.0 Proのビジョン機能付きバージョン。画像解析機能が強化されています。"
+                #     "name": "gemini-2.0-flash-001",
+                #     "description": "優れた速度、ネイティブ ツールの使用、100 万トークンのコンテキスト ウィンドウなど、次世代の機能と強化された機能を提供します"
                 # },
-            ]
-        },
-        {
-            "base_model": "PaLM2",
-            "variations": [
+                # {
+                #     "name": "gemini-2.0-flash-lite-001",
+                #     "description": "費用対効果と低レイテンシを重視して最適化された Gemini 2.0 Flash モデル"
+                # },
                 {
-                    "name": "text-bison@001",
-                    "description": "PaLM2のテキスト解析専用モデル。文章解析に優れています。"
+                    "name": "gemini-1.5-pro-002",
+                    "description": ""
                 },
                 {
-                    "name": "chat-bison@001",
-                    "description": "PaLM2のチャット専用モデル。自然な会話生成が可能です。"
+                    "name": "gemini-1.5-flash-002",
+                    "description": ""
                 },
-            ]
-        },
-        {
-            "base_model": "Codey",
-            "variations": [
                 {
-                    "name": "code-bison@001",
-                    "description": "Codeyのコード生成専用モデル。高精度なコード生成が可能です。"
-                },
+                    "name": "text-embedding-005",
+                    "description": ""
+                }
             ]
         },
 ]
@@ -159,7 +150,7 @@ def hello_chat(req: flask.Request) -> Mapping[str, Any]:
     # ユーザ設定がない場合はデフォルト設定（gemini）を使用
     if ret is None:
       print("*** user_settings is None. Use default settings.")
-      select_model = "gemini-1.0-pro"
+      select_model = default_model
       conversation_id = str(uuid.uuid4())
       set_user_settings(user_id, select_model, conversation_id)
     else:
@@ -315,7 +306,7 @@ def vertex_palm2_for_chat(query: str, temperature: float = 0.2, model: str = "ch
     return response.text
 
 
-def vertex_gemini(query: str, temperature: float = 0.2, model: str = "gemini-1.0-pro") -> None:
+def vertex_gemini(query: str, temperature: float = 0.2, model: str = default_model) -> None:
     print("vertex_gemini()  query: {}, model: {}".format(query, model))
     model = GenerativeModel(model)
 
@@ -334,12 +325,15 @@ def vertex_gemini(query: str, temperature: float = 0.2, model: str = "gemini-1.0
     responses = model.generate_content(
         query,
         generation_config=generation_config,
-        stream=True,
+        stream=False,
     )
 
-    for response in responses:
-      print(f"Response from Model: {response.text}", end="")
-      output_response = output_response + response.text
+    print(responses.text)
+    output_response = responses.text
+
+    # for response in responses:
+    #   print(f"Response from Model: {response.text}", end="")
+    #   output_response = output_response + response.text
 
     return output_response
 
@@ -400,61 +394,3 @@ def create_cards_for_google_chat(user_email: str) -> Mapping[str, Any]:
     }
 
     return cards
-
-
-# def create_cards_for_teams(user_email: str) -> Mapping[str, Any]:
-#     """
-#     teams のカードインタフェースを作成する
-#     """
-#     print("*** create_cards_for_teams()")
-#     card = {
-#         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-#         "type": "AdaptiveCard",
-#         "version": "1.0",
-#         "body": [
-#             {
-#             "type": "Image",
-#             "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtB3AwMUeNoq4gUBGe6Ocj8kyh3bXa9ZbV7u1fVKQoyKFHdkqU",
-#             "size": "stretch"
-#             },
-#             {
-#             "type": "TextBlock",
-#             "spacing": "medium",
-#             "size": "default",
-#             "weight": "bolder",
-#             "text": "Welcome to Bot Framework!",
-#             "wrap": true,
-#             "maxLines": 0
-#             },
-#             {
-#             "type": "TextBlock",
-#             "size": "default",
-#             "isSubtle": "true",
-#             "text": "Now that you have successfully run your bot, follow the links in this Adaptive Card to expand your knowledge of Bot Framework.",
-#             "wrap": true,
-#             "maxLines": 0
-#             }
-#         ],
-#         "actions": [
-#             {
-#             "type": "Action.OpenUrl",
-#             "title": "Get an overview",
-#             "url": "https://docs.microsoft.com/azure/bot-service/?view=azure-bot-service-4.0"
-#             },
-#             {
-#             "type": "Action.OpenUrl",
-#             "title": "Ask a question",
-#             "url": "https://stackoverflow.com/questions/tagged/botframework"
-#             },
-#             {
-#             "type": "Action.OpenUrl",
-#             "title": "Learn how to deploy",
-#             "url": "https://docs.microsoft.com/azure/bot-service/bot-builder-howto-deploy-azure?view=azure-bot-service-4.0"
-#             }
-#         ]
-#     }
-
-#     attachment = Attachment(content_type="application/vnd.microsoft.card.adaptive", content=card)
-#     response = MessageFactory.attachment(attachment)
-
-#     # return turn_context.send_activity(response)
