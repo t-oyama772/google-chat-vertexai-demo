@@ -80,3 +80,7 @@ export PROJECT_ID="your-project-id"
 
 - [Google Chat、Vertex AI、Firestore でプロジェクトを管理する](https://developers.google.com/workspace/chat/tutorial-project-management?hl=ja)
 - [Vertex AI の生成AIのロケーション](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/locations?hl=ja#asia-pacific)
+- [Gemini API のドキュメント](https://ai.google.dev/gemini-api/docs?hl=ja)
+- [Gemini モデル](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models?hl=ja#gemini-models)
+- [モデルのバージョンとライフサイクル](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions?hl=ja)
+- [Vertex AI SDK](https://cloud.google.com/vertex-ai/generative-ai/docs/migrate-to-v2?hl=ja#migrate-with-vertex-ai-sdk)
