@@ -1,6 +1,5 @@
 import flask
 import functions_framework
-import os
 import vertexai
 import uuid
 import google.auth
@@ -9,61 +8,58 @@ from vertexai.language_models import ChatModel, TextGenerationModel, CodeGenerat
 from vertexai.generative_models import GenerationConfig, GenerativeModel
 from google.cloud import firestore
 from datetime import datetime
-# from botbuilder.core import (
-#     ConversationState,
-#     MessageFactory,
-#     UserState,
-#     TurnContext,
-# )
-# from botbuilder.dialogs import Dialog
-# from botbuilder.schema import Attachment, ChannelAccount
-# from helpers.dialog_helper import DialogHelper
 
-# from .dialog_bot import DialogBot
 
 cred, PROJECT_ID = google.auth.default()
 service_account_email = cred.service_account_email
 print(f'{PROJECT_ID=}')
+DEFAULT_LOCATION = "asia-northeast1"
 
 db = firestore.Client(project=PROJECT_ID)
-vertexai.init(project=PROJECT_ID, location="asia-northeast1")
-# vertexai.init(project=PROJECT_ID, location="global")
+# 初期化は選択されたモデルに応じて後で行うため、ここでは削除
+# vertexai.init(project=PROJECT_ID, location="asia-northeast1")
+
 default_model = "gemini-1.5-pro-002"
 models_json = [
         {
             "base_model": "Gemini",
             "variations": [
-                # {
-                #     "name": "gemini-2.0-flash-001",
-                #     "description": "優れた速度、ネイティブ ツールの使用、100 万トークンのコンテキスト ウィンドウなど、次世代の機能と強化された機能を提供します"
-                # },
-                # {
-                #     "name": "gemini-2.0-flash-lite-001",
-                #     "description": "費用対効果と低レイテンシを重視して最適化された Gemini 2.0 Flash モデル"
-                # },
+                {
+                    "name": "gemini-2.0-flash-001",
+                    "description": "優れた速度、ネイティブ ツールの使用、100 万トークンのコンテキスト ウィンドウなど、次世代の機能と強化された機能を提供します",
+                    "location": "us-central1"
+                },
+                {
+                    "name": "gemini-2.0-flash-lite-001",
+                    "description": "費用対効果と低レイテンシを重視して最適化された Gemini 2.0 Flash モデル",
+                    "location": "us-central1"
+                },
                 {
                     "name": "gemini-1.5-pro-002",
-                    "description": ""
+                    "description": "",
+                    "location": "asia-northeast1"
                 },
                 {
                     "name": "gemini-1.5-flash-002",
-                    "description": ""
+                    "description": "",
+                    "location": "asia-northeast1"
                 },
                 {
                     "name": "text-embedding-005",
-                    "description": ""
+                    "description": "",
+                    "location": "asia-northeast1"
                 }
             ]
         },
 ]
 
-# Google Cloud Function that responds to messages sent in
-# Google Chat.
-#
-# @param {Object} req Request sent from Google Chat.
-# @param {Object} res Response to send back.
+
 @functions_framework.http
 def hello_chat(req: flask.Request) -> Mapping[str, Any]:
+  """
+  Google Cloud Function that responds to messages sent in
+  Google Chat.
+  """
   if req.method == "GET":
     return "Hello! This function must be called from Google Chat."
 
@@ -134,6 +130,9 @@ def hello_chat(req: flask.Request) -> Mapping[str, Any]:
     # データの書き込み
     set_user_settings(user_id, select_model, conversation_id)
     
+    # モデル選択時に Vertex AI を初期化
+    initialize_vertex_ai(select_model)
+    
     answer = {
       "text": response
     }
@@ -148,9 +147,13 @@ def hello_chat(req: flask.Request) -> Mapping[str, Any]:
       select_model = default_model
       conversation_id = str(uuid.uuid4())
       set_user_settings(user_id, select_model, conversation_id)
+      # デフォルトモデルで Vertex AI を初期化
+      initialize_vertex_ai(select_model)
     else:
       select_model = ret["select_model"]
       conversation_id = ret["conversation_id"]
+      # 保存されたモデルで Vertex AI を初期化
+      initialize_vertex_ai(select_model)
 
     # 選択モデルによって分岐
     if "gemini" in select_model:
@@ -389,3 +392,23 @@ def create_cards_for_google_chat(user_email: str) -> Mapping[str, Any]:
     }
 
     return cards
+
+
+def get_model_location(model_name: str) -> str:
+    """
+    モデル名からロケーションを取得する
+    """
+    for model in models_json:
+        for variation in model['variations']:
+            if variation['name'] == model_name:
+                return variation.get('location', DEFAULT_LOCATION)
+    return DEFAULT_LOCATION
+
+
+def initialize_vertex_ai(model_name: str) -> None:
+    """
+    選択されたモデルに応じて Vertex AI を初期化する
+    """
+    location = get_model_location(model_name)
+    print(f"Initializing Vertex AI with location: {location} for model: {model_name}")
+    vertexai.init(project=PROJECT_ID, location=location)
