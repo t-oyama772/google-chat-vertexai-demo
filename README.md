@@ -84,3 +84,4 @@ export PROJECT_ID="your-project-id"
 - [Gemini モデル](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models?hl=ja#gemini-models)
 - [モデルのバージョンとライフサイクル](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions?hl=ja)
 - [Vertex AI SDK](https://cloud.google.com/vertex-ai/generative-ai/docs/migrate-to-v2?hl=ja#migrate-with-vertex-ai-sdk)
+- [Google Chat サンプルコード](https://github.com/googleworkspace/google-chat-samples/tree/main/python/basic-app)
