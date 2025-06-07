@@ -2,5 +2,4 @@ Flask==3.1.1
 functions-framework==3.8.3
 google-cloud-aiplatform==1.80.0
 google-cloud-firestore==2.20.2
-botbuilder-core==4.13.0
 google-auth==2.40.2

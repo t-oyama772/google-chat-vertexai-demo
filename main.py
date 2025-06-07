@@ -73,16 +73,11 @@ def hello_chat(req: flask.Request) -> Mapping[str, Any]:
 
   print(request_json)
 
-  # メッセージが送信されたチャンネルが Google Chat か teams かを判定
+  # メッセージが送信されたチャンネルが Google Chat かどうかを判定
   if "configCompleteRedirectUrl" in request_json:
     if "https://chat.google.com/" in request_json["configCompleteRedirectUrl"]:
       print("*** configCompleteRedirectUrl={}".format(request_json["configCompleteRedirectUrl"]))
       chat_platform = "google_chat"
-    elif "channelId" in request_json:
-        if request_json["channelId"] == "msteams":
-            chat_platform = "teams"
-        else:
-            chat_platform = "unknown"
     else:
       chat_platform = "unknown"
   elif "cardsV2" in request_json["message"]:
