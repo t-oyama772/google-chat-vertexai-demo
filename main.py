@@ -1,13 +1,11 @@
 import flask
 import functions_framework
-import os
 import vertexai
 import uuid
 import google.auth
 from typing import Any, Mapping, Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
-from vertexai.language_models import ChatModel, TextGenerationModel, CodeGenerationModel
 from vertexai.generative_models import GenerationConfig, GenerativeModel
 from google.cloud import firestore
 from datetime import datetime
@@ -17,10 +15,12 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class ChatPlatform(Enum):
     """チャットプラットフォームの種類"""
     GOOGLE_CHAT = "google_chat"
     UNKNOWN = "unknown"
+
 
 @dataclass
 class ModelVariation:
@@ -29,11 +29,13 @@ class ModelVariation:
     description: str
     location: str
 
+
 @dataclass
 class BaseModel:
     """ベースモデル情報"""
     name: str
     variations: List[ModelVariation]
+
 
 class VertexAIClient:
     """Vertex AI クライアント"""
@@ -56,12 +58,18 @@ class VertexAIClient:
                     return variation.location
         return DEFAULT_LOCATION
 
+
 class FirestoreClient:
     """Firestore クライアント"""
     def __init__(self, project_id: str):
         self.db = firestore.Client(project=project_id)
 
-    def set_user_settings(self, user_id: str, select_model: str, conversation_id: str) -> None:
+    def set_user_settings(
+            self,
+            user_id: str,
+            select_model: str,
+            conversation_id: str
+    ) -> None:
         """ユーザ設定の保存"""
         logger.info(f"Setting user settings - user_id: {user_id}, model: {select_model}")
         doc_ref = self.db.collection("users").document(user_id).collection("messages").document("user_settings")
@@ -76,9 +84,18 @@ class FirestoreClient:
         doc_ref = self.db.collection("users").document(user_id).collection("messages").document("user_settings")
         return doc_ref.get().to_dict()
 
-    def set_chat_history(self, conversation_id: str, thread_id: str, user_id: str, 
-                        user_email: str, user_name: str, select_model: str, 
-                        user_message: str, chatbot_message: str, chat_platform: str) -> None:
+    def set_chat_history(
+            self,
+            conversation_id: str,
+            thread_id: str,
+            user_id: str,
+            user_email: str,
+            user_name: str,
+            select_model: str,
+            user_message: str,
+            chatbot_message: str,
+            chat_platform: str
+    ) -> None:
         """チャット履歴の保存"""
         doc_ref = self.db.collection("users").document(user_id).collection("messages").document()
         doc_ref.set({
@@ -93,6 +110,7 @@ class FirestoreClient:
             "chat_platform": chat_platform,
             "timestamp": datetime.now(),
         })
+
 
 # 定数定義
 DEFAULT_LOCATION = "asia-northeast1"
@@ -137,6 +155,7 @@ cred, PROJECT_ID = google.auth.default()
 vertex_ai_client = VertexAIClient(PROJECT_ID)
 firestore_client = FirestoreClient(PROJECT_ID)
 
+
 @functions_framework.http
 def hello_chat(req: flask.Request) -> Mapping[str, Any]:
     """Google Chat からのリクエストを処理するメイン関数"""
@@ -168,6 +187,7 @@ def hello_chat(req: flask.Request) -> Mapping[str, Any]:
         logger.error(f"Error processing request: {str(e)}")
         return {"text": f"エラーが発生しました: {str(e)}"}
 
+
 def _determine_chat_platform(request_json: Dict[str, Any]) -> ChatPlatform:
     """チャットプラットフォームを判定"""
     if "configCompleteRedirectUrl" in request_json:
@@ -177,12 +197,17 @@ def _determine_chat_platform(request_json: Dict[str, Any]) -> ChatPlatform:
         return ChatPlatform.GOOGLE_CHAT
     return ChatPlatform.UNKNOWN
 
+
 def _get_thread_id(request_json: Dict[str, Any]) -> str:
     """スレッドIDを取得"""
     thread_name = request_json["message"]["thread"]["name"]
     return thread_name.split("/")[-1]
 
-def _get_user_info_and_prompt(request_json: Dict[str, Any], chat_platform: ChatPlatform) -> tuple:
+
+def _get_user_info_and_prompt(
+        request_json: Dict[str, Any],
+        chat_platform: ChatPlatform
+) -> tuple:
     """ユーザー情報とプロンプトを取得"""
     if request_json["type"] in ["ADDED_TO_SPACE", "MESSAGE"]:
         user_info = {
@@ -206,8 +231,13 @@ def _get_user_info_and_prompt(request_json: Dict[str, Any], chat_platform: ChatP
 
     return user_info, prompt
 
-def _generate_response(prompt: str, user_info: Dict[str, str], 
-                      chat_platform: ChatPlatform, thread_id: str) -> Mapping[str, Any]:
+
+def _generate_response(
+        prompt: str,
+        user_info: Dict[str, str],
+        chat_platform: ChatPlatform,
+        thread_id: str
+) -> Mapping[str, Any]:
     """レスポンスを生成"""
     if prompt == "はじめから":
         if chat_platform == ChatPlatform.GOOGLE_CHAT:
@@ -221,21 +251,27 @@ def _generate_response(prompt: str, user_info: Dict[str, str],
     # 通常のチャット処理
     return _handle_chat(prompt, user_info, chat_platform, thread_id)
 
+
 def _handle_model_selection(prompt: str, user_info: Dict[str, str]) -> Mapping[str, Any]:
     """モデル選択の処理"""
     select_model = prompt
     conversation_id = str(uuid.uuid4())
-    
+
     vertex_ai_client.initialize(select_model)
     firestore_client.set_user_settings(user_info["id"], select_model, conversation_id)
-    
+
     return {"text": f"モデルを選択しました: {select_model}"}
 
-def _handle_chat(prompt: str, user_info: Dict[str, str], 
-                chat_platform: ChatPlatform, thread_id: str) -> Mapping[str, Any]:
+
+def _handle_chat(
+        prompt: str,
+        user_info: Dict[str, str],
+        chat_platform: ChatPlatform,
+        thread_id: str
+) -> Mapping[str, Any]:
     """チャット処理"""
     settings = firestore_client.get_user_settings(user_info["id"])
-    
+
     if not settings:
         select_model = DEFAULT_MODEL
         conversation_id = str(uuid.uuid4())
@@ -246,14 +282,15 @@ def _handle_chat(prompt: str, user_info: Dict[str, str],
 
     vertex_ai_client.initialize(select_model)
     response = _generate_ai_response(prompt, select_model)
-    
+
     firestore_client.set_chat_history(
-        conversation_id, thread_id, user_info["id"], 
+        conversation_id, thread_id, user_info["id"],
         user_info["email"], user_info["name"], select_model,
         prompt, response, chat_platform.value
     )
 
     return {"text": f"モデル: {select_model}\n{response}"}
+
 
 def _generate_ai_response(prompt: str, model: str) -> str:
     """AIモデルを使用してレスポンスを生成"""
@@ -263,6 +300,7 @@ def _generate_ai_response(prompt: str, model: str) -> str:
         return vertex_gemini(query=prompt, model=model)  # text-embedding-005 も Gemini を使用
     else:
         raise ValueError(f"Unsupported model: {model}")
+
 
 def vertex_gemini(query: str, temperature: float = 0.2, model: str = DEFAULT_MODEL) -> str:
     """Gemini モデルを使用してレスポンスを生成"""
@@ -288,34 +326,36 @@ def vertex_gemini(query: str, temperature: float = 0.2, model: str = DEFAULT_MOD
     logger.info(responses.text)
     return responses.text
 
-def create_button(base_model, variation_model, user_email):
+
+def create_button(base_model: BaseModel, variation: ModelVariation, user_email: str) -> Dict[str, Any]:
     """
     ボタンを作成する
     """
     return {
-        "text": base_model + ": " + variation_model,
+        "text": f"{base_model.name}: {variation.name}",
         "onClick": {
             "action": {
                 "function": "model_request",
                 "parameters": [
                     {
                         "key": "select_model",
-                        "value": variation_model
-                    },
-                    # {
-                    #     "key": "user_email",
-                    #     "value": user_email
-                    # }
+                        "value": variation.name
+                    }
                 ]
             }
         }
     }
 
+
 def create_cards_for_google_chat(user_email: str) -> Mapping[str, Any]:
     """
     google chat のカードインタフェースを作成する
     """
-    buttons = [create_button(model['name'], variation['name'], user_email) for model in MODELS for variation in model.variations]
+    buttons = [
+        create_button(model, variation, user_email) 
+        for model in MODELS 
+        for variation in model.variations
+    ]
 
     model_section = {
         "widgets": [
