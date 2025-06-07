@@ -239,7 +239,7 @@ def _generate_response(
         thread_id: str
 ) -> Mapping[str, Any]:
     """レスポンスを生成"""
-    if prompt == "モデルを選択":
+    if prompt in ["はじめから", "モデルを選択"]:
         if chat_platform == ChatPlatform.GOOGLE_CHAT:
             return create_cards_for_google_chat(user_info["id"])
         return {"text": "このコマンドは Google Chat でのみ使用できます。"}
