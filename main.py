@@ -260,71 +260,13 @@ def _generate_ai_response(prompt: str, model: str) -> str:
     if "gemini" in model:
         return vertex_gemini(query=prompt, model=model)
     elif "text" in model:
-        return vertex_palm2_for_text(query=prompt, model=model)
-    elif "code" in model:
-        return vertex_palm2_for_code(query=prompt, model=model)
+        return vertex_gemini(query=prompt, model=model)  # text-embedding-005 も Gemini を使用
     else:
-        return vertex_palm2_for_chat(query=prompt, model=model)
+        raise ValueError(f"Unsupported model: {model}")
 
-def vertex_palm2_for_text(query: str, temperature: float = 0.2, model: str = "chat-bison@001") -> None:
-    print("vertex_palm2_for_text()  query: {}, model: {}".format(query, model))
-    text_model = TextGenerationModel.from_pretrained(model)
-
-    parameters = {
-        "temperature": temperature,  # Temperature controls the degree of randomness in token selection.
-        "max_output_tokens": 256,  # Token limit determines the maximum amount of text output.
-        "top_p": 0.95,  # Tokens are selected from most probable to least until the sum of their probabilities equals the top_p value.
-        "top_k": 40,  # A top_k of 1 means the selected token is the most probable among all tokens.
-    }
-
-    print(f"prompt: {query}")
-
-    response = text_model.predict(query, **parameters)
-    print(f"Response from Model: {response.text}")
-
-    return response.text
-
-def vertex_palm2_for_code(query: str, temperature: float = 0.2, model: str = "chat-bison@001") -> None:
-    print("vertex_palm2_for_code()  query: {}, model: {}".format(query, model))
-    code_model = CodeGenerationModel.from_pretrained(model)
-
-    parameters = {
-        "temperature": temperature,  # Temperature controls the degree of randomness in token selection.
-        "max_output_tokens": 256,  # Token limit determines the maximum amount of text output.
-    }
-
-    print(f"prompt: {query}")
-
-    response = code_model.predict(
-        prefix=query, **parameters
-    )
-    print(f"Response from Model: {response.text}")
-
-    return response.text
-
-def vertex_palm2_for_chat(query: str, temperature: float = 0.2, model: str = "chat-bison@001") -> None:
-    print("vertex_palm2_for_chat()  query: {}, model: {}".format(query, model))
-    chat_model = ChatModel.from_pretrained(model)
-
-    parameters = {
-        "temperature": temperature,  # Temperature controls the degree of randomness in token selection.
-        "max_output_tokens": 256,  # Token limit determines the maximum amount of text output.
-        "top_p": 0.95,  # Tokens are selected from most probable to least until the sum of their probabilities equals the top_p value.
-        "top_k": 40,  # A top_k of 1 means the selected token is the most probable among all tokens.
-    }
-
-    chat = chat_model.start_chat(
-        context="""You are a professional Google Cloud Engineer.""",
-    )
-    print(f"prompt: {query}")
-
-    response = chat.send_message(query, **parameters)
-    print(f"Response from Model: {response.text}")
-
-    return response.text
-
-def vertex_gemini(query: str, temperature: float = 0.2, model: str = DEFAULT_MODEL) -> None:
-    print("vertex_gemini()  query: {}, model: {}".format(query, model))
+def vertex_gemini(query: str, temperature: float = 0.2, model: str = DEFAULT_MODEL) -> str:
+    """Gemini モデルを使用してレスポンスを生成"""
+    logger.info(f"vertex_gemini()  query: {query}, model: {model}")
     model = GenerativeModel(model)
 
     generation_config = GenerationConfig(
@@ -335,9 +277,7 @@ def vertex_gemini(query: str, temperature: float = 0.2, model: str = DEFAULT_MOD
         max_output_tokens=8192,
     )
 
-    print(f"prompt: {query}")
-
-    output_response = ""
+    logger.info(f"prompt: {query}")
 
     responses = model.generate_content(
         query,
@@ -345,14 +285,8 @@ def vertex_gemini(query: str, temperature: float = 0.2, model: str = DEFAULT_MOD
         stream=False,
     )
 
-    print(responses.text)
-    output_response = responses.text
-
-    # for response in responses:
-    #   print(f"Response from Model: {response.text}", end="")
-    #   output_response = output_response + response.text
-
-    return output_response
+    logger.info(responses.text)
+    return responses.text
 
 def create_button(base_model, variation_model, user_email):
     """
